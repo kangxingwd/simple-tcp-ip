@@ -1,16 +1,20 @@
 CC := gcc
 CXX := g++
+SRCS = $(wildcard src/*.c)
+OBJS = $(SRCS:.c=.o)
 INCLUDE := ./include
-INSTALL_DIR := ../out
+CFLAGS = -g $(INCLUDE:%=-I%)
+LDFLAGS = -wl,rpath=$(LIBDIR)
 
+TARGETDIR ?= ./
+TARGET = $(TARGETDIR)/my_tcpip
 
-all: udp
+.PHONY: clean
 
-udp:
-	$(CC) -I$(INCLUDE) src/udp.c -o udp_test
-
-install:
-	cp udp_test $(INSTALL_DIR)/
+$(TARGET): $(OBJS)
+	mkdir -p $(TARGETDIR)
+	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET)
+	#$(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LDFLAGS)
 
 clean:
-	rm -rf *.o udp_test
+	rm -rf $(OBJS) $(TARGET)

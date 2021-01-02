@@ -40,7 +40,7 @@ struct udphdr {
     unsigned short checknum;
 };
 
-struct icmphdr{
+struct icmphdr {
     unsigned char type;
     unsigned char code;
     unsigned short checknum;
@@ -48,10 +48,28 @@ struct icmphdr{
 };
 
 
-struct udppkt{
+struct udppkt {
     struct ethhdr eth;
     struct iphdr ip;
     struct udphdr udp;
     unsigned char data[0];
 };
 
+struct arphdr {
+    unsigned short hw_type;
+    unsigned short pro_type;
+    unsigned char hw_len;
+    unsigned char pro_len;
+    unsigned short op;
+
+    unsigned char src_hw_addr[ETH_ADDR_LENGTH];
+    unsigned int src_ip_addr;
+
+    unsigned char dst_hw_addr[ETH_ADDR_LENGTH];
+    unsigned int dst_ip_addr;
+};
+
+struct arppkt {
+    struct ethhdr eth;
+    struct arphdr arp;
+};
