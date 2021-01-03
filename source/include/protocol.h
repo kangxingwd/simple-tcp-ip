@@ -9,12 +9,16 @@
 #define PROTO_ICMP	1
 #define PROTO_IGMP	2
 
+#define ETH_HDR_LEN 14
+#define IP_HDR_LEN 20
+#define ICMP_HDR_LEN 8
+
 struct ethhdr {
     unsigned char dst_addr[ETH_ADDR_LENGTH];
     unsigned char src_addr[ETH_ADDR_LENGTH];
     unsigned short protocol;
 };
-
+//14
 
 struct iphdr {
     unsigned char   version:4,
@@ -31,7 +35,7 @@ struct iphdr {
     unsigned int sip;
     unsigned int dip;
 };
-
+//20
 
 struct udphdr {
     unsigned short sport;
@@ -40,12 +44,12 @@ struct udphdr {
     unsigned short checknum;
 };
 
-struct icmphdr {
-    unsigned char type;
-    unsigned char code;
-    unsigned short checknum;
-    unsigned int other;
-};
+// struct icmphdr {
+//     unsigned char type;
+//     unsigned char code;
+//     unsigned short checknum;
+//     unsigned int other;
+// };
 
 
 struct udppkt {
@@ -72,4 +76,19 @@ struct arphdr {
 struct arppkt {
     struct ethhdr eth;
     struct arphdr arp;
+};
+
+struct icmphdr {
+    unsigned char icmp_type;
+    unsigned char icmp_code;
+    unsigned short icmp_cksum;
+    unsigned short icmp_ident;
+    unsigned short icmp_sep_num;
+};
+
+struct icmppkt {
+    struct ethhdr eth;          //14
+    struct iphdr ip;            //20
+    struct icmphdr icmp;        //8
+    unsigned char data[0];
 };

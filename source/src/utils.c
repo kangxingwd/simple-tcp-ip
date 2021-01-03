@@ -8,6 +8,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 
+#include "protocol.h"
+
 int print_mac(unsigned char *mac)
 {
      if (!mac)
@@ -105,4 +107,56 @@ int print_local_ip()
           ifAddrStruct = ifAddrStruct->ifa_next;
      }
      return 0;
+}
+
+/*
+     1、将校验和字段置为0。
+     2、将每两个字节（16位）相加（二进制求和）直到最后得出结果，若出现最后还剩一个字节继续与前面结果相加。
+     3、(溢出)将高16位与低16位相加，直到高16位为0为止。
+     4、将最后的结果（二进制）取反。
+*/
+unsigned short cksum(unsigned short *ck_data, int len)
+{
+     unsigned short* data = ck_data;
+     long sum = 0;
+     while(len > 1) {
+          sum += *(data++);
+          if (sum & 0x80000000)
+               sum = (sum & 0xFFFF) + (sum >> 16);
+          len -= 2;
+     }
+
+     if (len)
+          sum += (unsigned short) *data;
+     
+     while (sum >> 16) {
+          sum = (sum & 0xFFFF) + (sum >> 16);
+     }
+
+     return ~sum;
+}
+
+unsigned short in_cksum(unsigned short *addr, int len)
+{
+	register int nleft = len;
+	register unsigned short *w = addr;
+	register int sum = 0;
+	unsigned short answer = 0;
+
+	while (nleft > 1)  {
+		sum += *w++;
+		nleft -= 2;
+	}
+
+	if (nleft == 1) {
+		*(u_char *)(&answer) = *(u_char *)w ;
+		sum += answer;
+	}
+
+	sum = (sum >> 16) + (sum & 0xffff);	
+	sum += (sum >> 16);			
+	answer = ~sum;
+	
+	return (answer);
+
 }

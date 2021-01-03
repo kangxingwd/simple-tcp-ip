@@ -64,7 +64,41 @@ int main()
 
                 } else if (ip_hdr->protocol == PROTO_ICMP) {
                     printf("[PROTO_IP][PROTO_ICMP] \n");
-                    
+                    struct icmppkt *icmp_req = (struct icmppkt *)stream;
+
+                    if (icmp_req->icmp.icmp_type == 8) {
+                        unsigned short ip_len = ntohs(icmp_req->ip.length);
+                        unsigned int data_len = (unsigned int)ip_len - IP_HDR_LEN -ICMP_HDR_LEN;
+                        struct icmppkt *icmp_rsp = (struct icmppkt *)malloc(sizeof(struct icmppkt) + data_len);
+                        memcpy(icmp_rsp, icmp_req, sizeof(struct icmppkt) + data_len);
+
+                        // eth
+                        memcpy(icmp_rsp->eth.src_addr, icmp_req->eth.dst_addr, ETH_ADDR_LENGTH);
+                        memcpy(icmp_rsp->eth.dst_addr, icmp_req->eth.src_addr, ETH_ADDR_LENGTH);
+
+                        // ip
+                        icmp_rsp->ip.id = 0xfa4b;
+                        icmp_rsp->ip.sip = icmp_req->ip.dip;
+                        icmp_rsp->ip.dip = icmp_req->ip.sip;
+
+                        // 为了计算一份数据报的IP检验和，首先把检验和字段置为0。然后，对首部中每个16位进行二进制反码求和(整个首部看成是由一串16位的字组成)，
+                        // 结果存在检验和字段中。当接收端收到一份IP数据报后，同样对首部中每个16 位进行二进制反码的求和。由于接收方在计算过程中包含了发送方存在首部中的检验和，
+                        // 因此，如果首部在传输过程中没有发生任何差错，那么接收方计算的结果应该为全1
+                        icmp_rsp->ip.checknum = 0x0;
+                        icmp_rsp->ip.checknum = cksum((unsigned short *)&(icmp_rsp->ip), IP_HDR_LEN);
+
+                        // icmp
+                        icmp_rsp->icmp.icmp_type = 0x0;
+                        icmp_rsp->icmp.icmp_code = 0x0;
+                        icmp_rsp->icmp.icmp_cksum = 0x0;
+                        // icmp 的校验和包括数据
+                        icmp_rsp->icmp.icmp_cksum = cksum((unsigned short *)&(icmp_rsp->icmp), ICMP_HDR_LEN + data_len);
+
+                        nm_inject(nmr, icmp_rsp, sizeof(struct icmppkt) + data_len);
+                        free(icmp_rsp);
+                    }
+
+                    printf("icmp end\n");
                 } else if (ip_hdr->protocol == PROTO_IGMP) {
                     printf("[PROTO_IP][PROTO_IGMP] \n");
 
@@ -84,8 +118,6 @@ int main()
                     printf("get_eth_ip or get_eth_macfailed!");
                     return -1;
                 }
-
-                printf("rp_req->arp.hw_type)[0] = %02X %02X\n" ,((char*)(&arp_req->arp.hw_type))[0], ((char*)(&arp_req->arp.hw_type))[1]);
 
                 if (arp_req->arp.op == htons(1) && arp_req->arp.dst_ip_addr == inet_addr(eth_ip)) {
                     printf("response the apr, ip = %s\n", eth_ip);
@@ -107,6 +139,7 @@ int main()
                     arp_rsp.arp.dst_ip_addr = arp_req->arp.src_ip_addr;
 
                     nm_inject(nmr, &arp_rsp, sizeof(struct arppkt));
+                    printf("arp end\n");
                 }
                 break;
             
